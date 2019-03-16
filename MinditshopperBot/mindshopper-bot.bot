@@ -1,0 +1,54 @@
+{
+  "name": "mindshopper-bot",
+  "description": "",
+  "services": [
+    {
+      "type": "abs",
+      "tenantId": "f149f7de-cb02-4676-9d90-1267010bdd49",
+      "subscriptionId": "cda62bf0-9873-424e-9a38-4d15663c4317",
+      "resourceGroup": "mindshopper",
+      "serviceName": "mindshopper-bot",
+      "name": "mindshopper-bot",
+      "id": "1",
+      "appId": "c505e69c-6a83-4328-8ad2-6c7bb346b3cb"
+    },
+    {
+      "type": "blob",
+      "connectionString": "DefaultEndpointsProtocol=https;AccountName=mindshopperbot;AccountKey=reFEA+H5dLU2xuvfP7sjSdwkAPdeq+h5Fg37SASGJ3VBDS/G12FHAYpcy7MeV6rcjGrv8qMyZkPE1ZGdsqGkQQ==;",
+      "tenantId": "f149f7de-cb02-4676-9d90-1267010bdd49",
+      "subscriptionId": "cda62bf0-9873-424e-9a38-4d15663c4317",
+      "resourceGroup": "mindshopper",
+      "serviceName": "mindshopperbot",
+      "id": "2"
+    },
+    {
+      "type": "endpoint",
+      "appId": "",
+      "appPassword": "",
+      "endpoint": "http://localhost:3978/api/messages",
+      "name": "development",
+      "id": "3"
+    },
+    {
+      "type": "endpoint",
+      "appId": "c505e69c-6a83-4328-8ad2-6c7bb346b3cb",
+      "appPassword": "shziwhXBH6?oMUXD2485:-(",
+      "endpoint": "https://mindshopper-bot.azurewebsites.net/api/messages",
+      "name": "production",
+      "id": "4"
+    },
+    {
+      "type": "appInsights",
+      "instrumentationKey": "5e04b012-be6a-4bdc-950a-fd233b08f086",
+      "applicationId": "7b9b09d8-d58d-4967-a3ff-0df0edbdd00e",
+      "apiKeys": {},
+      "tenantId": "f149f7de-cb02-4676-9d90-1267010bdd49",
+      "subscriptionId": "cda62bf0-9873-424e-9a38-4d15663c4317",
+      "resourceGroup": "mindshopper",
+      "serviceName": "mindshopper-bot",
+      "id": "5"
+    }
+  ],
+  "padlock": "",
+  "version": "2.0"
+}
