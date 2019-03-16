@@ -25,7 +25,7 @@ namespace MinditshopperBot
             Console.Write(msg);
         }
 
-        public static IList<RecommendedItem> ProcessRecommendedItem(String itemId)
+        public static IList<Item> ProcessRecommendedItem(String itemId)
         {
             client.DefaultRequestHeaders.Accept.Clear();
             client.DefaultRequestHeaders.Accept.Add(
@@ -34,7 +34,7 @@ namespace MinditshopperBot
             client.DefaultRequestHeaders.Add("x-api-key", "M2tlZWdqdXNuZmFrdw==");
             var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/models/default/recommend?itemId=" + itemId).Result;
 
-            IList<RecommendedItem> items = JsonConvert.DeserializeObject<IList<RecommendedItem>>(msg);
+            IList<Item> items = JsonConvert.DeserializeObject<IList<Item>>(msg);
 
             return items;
         }
@@ -46,7 +46,7 @@ namespace MinditshopperBot
                 new MediaTypeWithQualityHeaderValue("application/json"));
             client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository");
             client.DefaultRequestHeaders.Add("x-api-key", "M2tlZWdqdXNuZmFrdw==");
-            var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/models/default/recommend?itemId=" + category).Result;
+            var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/topsellers?categoryCode=" + category).Result;
 
             IList<Item> items = JsonConvert.DeserializeObject<IList<Item>>(msg);
 
