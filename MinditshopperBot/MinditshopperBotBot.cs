@@ -1,10 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Connector;
+using Microsoft.Bot.Connector.Authentication;
 using Microsoft.Bot.Schema;
+using Microsoft.EntityFrameworkCore.Internal;
 using Microsoft.Extensions.Logging;
 
 namespace MinditshopperBot
@@ -24,6 +28,7 @@ namespace MinditshopperBot
     {
         private readonly MinditshopperBotAccessors _accessors;
         private readonly ILogger _logger;
+        private readonly RecommenderClient recommenderClient;
 
         /// <summary>
         /// Initializes a new instance of the class.
@@ -31,7 +36,7 @@ namespace MinditshopperBot
         /// <param name="conversationState">The managed conversation state.</param>
         /// <param name="loggerFactory">A <see cref="ILoggerFactory"/> that is hooked to the Azure App Service provider.</param>
         /// <seealso cref="https://docs.microsoft.com/en-us/aspnet/core/fundamentals/logging/?view=aspnetcore-2.1#windows-eventlog-provider"/>
-        public MinditshopperBotBot(ConversationState conversationState, ILoggerFactory loggerFactory)
+        public MinditshopperBotBot(ConversationState conversationState, ILoggerFactory loggerFactory, RecommenderClient recommenderClient)
         {
             if (conversationState == null)
             {
@@ -43,9 +48,17 @@ namespace MinditshopperBot
                 throw new System.ArgumentNullException(nameof(loggerFactory));
             }
 
+            if (recommenderClient == null)
+            {
+                throw new System.ArgumentNullException(nameof(recommenderClient));
+            } else
+            {
+                this.recommenderClient = recommenderClient;
+            }
+
             _accessors = new MinditshopperBotAccessors(conversationState)
             {
-                CounterState = conversationState.CreateProperty<MindshopperUserState>(MinditshopperBotAccessors.CounterStateName),
+                MindshopperUserState = conversationState.CreateProperty<MindshopperUserState>(MinditshopperBotAccessors.MinditshoperUserState),
             };
 
             _logger = loggerFactory.CreateLogger<MinditshopperBotBot>();
@@ -70,28 +83,31 @@ namespace MinditshopperBot
             // Handle Message activity type, which is the main activity type for shown within a conversational interface
             // Message activities may contain text, speech, interactive cards, and binary or unknown attachments.
             // see https://aka.ms/about-bot-activity-message to learn more about the message and other activity types
+            var state = await _accessors.MindshopperUserState.GetAsync(turnContext, () => new MindshopperUserState());
+
             if (turnContext.Activity.Type == ActivityTypes.ConversationUpdate)
             {
                 _logger.LogInformation("Starting a conversation");
+                StartConversation(state, turnContext, cancellationToken);
             }
 
             if (turnContext.Activity.Type == ActivityTypes.Message)
             {
-                // Get the conversation state from the turn context.
-                var state = await _accessors.CounterState.GetAsync(turnContext, () => new MindshopperUserState());
-
                 switch (state.TurnCount) {
-                    case 0:
+                    case State.START:
                        HelloUser1(state, turnContext, cancellationToken);
                        break;
+                    case State.CHOOSE_CATEGORY:
+                        ChooseCategory(state, turnContext, cancellationToken);
+                        break;
                     default:
                         state.TurnCount++;
-                        await _accessors.CounterState.SetAsync(turnContext, state);
+                        await _accessors.MindshopperUserState.SetAsync(turnContext, state);
                         // Save the new turn count into the conversation state.
                         await _accessors.ConversationState.SaveChangesAsync(turnContext);
 
                         // Echo back to the user whatever they typed.
-                        var responseMessage = $"Turn {state.TurnCount}: Hello '{state.UserId}'";
+                        var responseMessage = $"Turn {state.TurnCount}: Hello '{state.Name}'";
                         await turnContext.SendActivityAsync(responseMessage);
                         break;
                 }
@@ -102,23 +118,157 @@ namespace MinditshopperBot
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="state"></param>
+        /// <param name="turnContext"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
         public async Task StartConversation(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
+            /*
+            IConversationUpdateActivity update = turnContext.Activity;
             
+            if (update.MembersAdded != null && update.MembersAdded.Any())
+            {
+                foreach (var newMember in update.MembersAdded)
+                {
+                    if (newMember.Id != turnContext.Activity.Recipient.Id)
+                    {
+                        if (turnContext.Activity.From.Properties["userId"] != null)
+                        {
+                            state.UserId = turnContext.Activity.From.Properties["userId"].ToString();
+                        }
+
+                        if (turnContext.Activity.From.Properties["cartId"] != null)
+                        {
+                            state.CartId = turnContext.Activity.From.Properties["cartId"].ToString();
+                        }
+
+                        if (turnContext.Activity.From.Properties["name"] != null)
+                        {
+                            state.Name = turnContext.Activity.From.Properties["name"].ToString();
+                        }
+
+                        state.TurnCount = State.CHOOSE_CATEGORY;
+
+                        await _accessors.MindshopperUserState.SetAsync(turnContext, state);
+                        await _accessors.ConversationState.SaveChangesAsync(turnContext);
+
+
+                        string hello = $"Hello, '{state.Name}'. I am your personal shopping assistant and I will guide you during the shopping process." +
+                            $"\n" +
+                            $"\n Please select what you want to buy:" +
+                            $"\n\t\t1) Tobacco" +
+                            $"\n\t\t2) Food" +
+                            $"\n\t\t3) Perfumes & Cosmetics" +
+                            $"\n\t\t4) Liquor";
+
+                        await turnContext.SendActivityAsync(hello);
+                    }
+                }
+            }*/
+
+
+            if (turnContext.Activity.From.Properties["userId"] != null)
+            {
+                state.UserId = turnContext.Activity.From.Properties["userId"].ToString();
+            }
+
+            if (turnContext.Activity.From.Properties["cartId"] != null)
+            {
+                state.CartId = turnContext.Activity.From.Properties["cartId"].ToString();
+            }
+
+            if (turnContext.Activity.From.Properties["name"] != null)
+            {
+                state.Name = turnContext.Activity.From.Properties["name"].ToString();
+            }
+
+            state.TurnCount = State.CHOOSE_CATEGORY;
+
+            await _accessors.MindshopperUserState.SetAsync(turnContext, state);
+            await _accessors.ConversationState.SaveChangesAsync(turnContext);
+
+
+            string hello = $"Hello, '{state.Name}'. I am your personal shopping assistant and I will guide you during the shopping process." +
+                $"\n" +
+                $"\n Please select what you want to buy:" +
+                $"\n\t\t1) Tobacco" +
+                $"\n\t\t2) Food" +
+                $"\n\t\t3) Perfumes & Cosmetics" +
+                $"\n\t\t4) Liquor";
+
+            await turnContext.SendActivityAsync(hello);
         }
+
+        public async Task ChooseCategory(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
+        {
+            var response = turnContext.Activity.Text;
+
+            if (response != null && response.Contains("1"))
+            {
+                IList<Item> list =  RecommenderClient.ProcessTopItems("10");
+
+                string text = $"Following items are top sellers in the category: 10\n";
+                int cnt = 1;
+                foreach (Item i in list)
+                {
+                    text += $"\n\t\t '{cnt}' - " + i.ItemName;
+                }
+                text += "\n Choose the item";
+
+                state.TurnCount = State.SELECTED_CATEGORY_ITEM;
+
+                await _accessors.MindshopperUserState.SetAsync(turnContext, state);
+                await _accessors.ConversationState.SaveChangesAsync(turnContext);
+                await turnContext.SendActivityAsync(text);
+            }
+
+            //TODO add for other categories
+        }
+
+        public async Task SelectItemCategory(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
+        {
+            var response = turnContext.Activity.Text;
+
+            if (response != null && response.Contains("1"))
+            {
+                IList<Item> list = RecommenderClient.ProcessTopItems("10");
+
+                string text = $"Following items are top sellers in the category: 10\n";
+                int cnt = 1;
+                foreach (Item i in list)
+                {
+                    text += $"\n\t\t '{cnt}' - " + i.ItemName;
+                }
+                text += "\n Choose the item";
+
+                state.TurnCount = State.SELECTED_CATEGORY_ITEM;
+
+                await _accessors.MindshopperUserState.SetAsync(turnContext, state);
+                await _accessors.ConversationState.SaveChangesAsync(turnContext);
+                await turnContext.SendActivityAsync(text);
+            }
+
+            //TODO add for other categories
+        }
+
+        //private 
 
         public async Task HelloUser1(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
-            state.TurnCount = 1;
+            state.TurnCount = State.CHOOSE_CATEGORY;
             state.UserId = "Dumi";
 
             // Set the property using the accessor.
-            await _accessors.CounterState.SetAsync(turnContext, state);
+            await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             // Save the new turn count into the conversation state.
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
 
             // Echo back to the user whatever they typed.
-            var responseMessage = $"Turn {state.TurnCount}: Hello '{state.UserId}'";
+            var responseMessage = $"Turn {state.TurnCount}: Hello '{state.Name}'";
 
             
             await turnContext.SendActivityAsync(responseMessage);

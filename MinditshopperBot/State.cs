@@ -9,7 +9,10 @@ namespace MinditshopperBot
     {
         START = 0,
         CHOOSE_CATEGORY = 1,
-        CHOOSE_CATEGORY_ITEM = 2,
-        CHOOSE_RECOMMENDED_ITEM = 3
+        SELECTED_CATEGORY = 2,
+        CHOOSE_CATEGORY_ITEM = 3,
+        SELECTED_CATEGORY_ITEM = 4,
+        CHOOSE_RECOMMENDED_ITEM = 5,
+        SELECTED_RECOMMENDED_ITEM = 6
     }
 }

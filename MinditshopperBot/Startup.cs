@@ -135,6 +135,7 @@ namespace MinditshopperBot
                };
            });
 
+            services.AddSingleton(new RecommenderClient());
             
         }
 

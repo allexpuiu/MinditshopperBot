@@ -14,12 +14,14 @@ namespace MinditshopperBot
         /// Gets or sets the number of turns in the conversation.
         /// </summary>
         /// <value>The number of turns in the conversation.</value>
-        public int TurnCount { get; set; } = 0;
+        public State TurnCount { get; set; } = 0;
 
         public string UserId { get; set; } = "N/A";
 
-        public int CartId { get; set; } = -1;
+        public string CartId { get; set; } = "-1";
 
         public string Name { get; set; } = "Unknown User";
+
+        public bool WasWelcomed { get; set; } = false;
     }
 }

@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace MinditshopperBot
 {
@@ -34,5 +35,7 @@ namespace MinditshopperBot
                 // .UseApplicationInsights()
                 .UseStartup<Startup>()
                 .Build();
+
+       
     }
 }

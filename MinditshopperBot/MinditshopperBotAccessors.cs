@@ -25,18 +25,13 @@ namespace MinditshopperBot
         }
 
         /// <summary>
-        /// Gets the <see cref="IStatePropertyAccessor{T}"/> name used for the <see cref="CounterState"/> accessor.
+        /// Gets the <see cref="IStatePropertyAccessor{T}"/> name used for the <see cref="MindshopperUserState"/> accessor.
         /// </summary>
         /// <remarks>Accessors require a unique name.</remarks>
         /// <value>The accessor name for the counter accessor.</value>
-        public static string CounterStateName { get; } = $"{nameof(MinditshopperBotAccessors)}.CounterState";
+        public static string MinditshoperUserState { get; } = $"{nameof(MinditshopperBotAccessors)}.MinditshoperUserState";
 
-        /// <summary>
-        /// Gets the <see cref="IStatePropertyAccessor{T}"/> name used for the <see cref="CounterState"/> accessor.
-        /// </summary>
-        /// <remarks>Accessors require a unique name.</remarks>
-        /// <value>The accessor name for the counter accessor.</value>
-        public static string UserStateName { get; } = $"{nameof(MinditshopperBotAccessors)}.UserState";
+ 
 
         /// <summary>
         /// Gets or sets the <see cref="IStatePropertyAccessor{T}"/> for CounterState.
@@ -44,16 +39,12 @@ namespace MinditshopperBot
         /// <value>
         /// The accessor stores the turn count for the conversation.
         /// </value>
-        public IStatePropertyAccessor<MindshopperUserState> CounterState { get; set; }
-
-        public IStatePropertyAccessor<UserState> MyUserState { get; set; }
+        public IStatePropertyAccessor<MindshopperUserState> MindshopperUserState { get; set; }
 
         /// <summary>
         /// Gets the <see cref="ConversationState"/> object for the conversation.
         /// </summary>
         /// <value>The <see cref="ConversationState"/> object.</value>
         public ConversationState ConversationState { get; }
-
-        public UserState UserState { get;  }
     }
 }
