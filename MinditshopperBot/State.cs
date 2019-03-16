@@ -5,8 +5,11 @@ using System.Threading.Tasks;
 
 namespace MinditshopperBot
 {
-    public class WelcomeUserState
+    public enum State
     {
-        public bool DidBotWelcomeUser { get; set; } = false;
+        START = 0,
+        CHOOSE_CATEGORY = 1,
+        CHOOSE_CATEGORY_ITEM = 2,
+        CHOOSE_RECOMMENDED_ITEM = 3
     }
 }

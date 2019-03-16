@@ -45,7 +45,7 @@ namespace MinditshopperBot
 
             _accessors = new MinditshopperBotAccessors(conversationState)
             {
-                CounterState = conversationState.CreateProperty<CounterState>(MinditshopperBotAccessors.CounterStateName),
+                CounterState = conversationState.CreateProperty<MindshopperUserState>(MinditshopperBotAccessors.CounterStateName),
             };
 
             _logger = loggerFactory.CreateLogger<MinditshopperBotBot>();
@@ -70,28 +70,58 @@ namespace MinditshopperBot
             // Handle Message activity type, which is the main activity type for shown within a conversational interface
             // Message activities may contain text, speech, interactive cards, and binary or unknown attachments.
             // see https://aka.ms/about-bot-activity-message to learn more about the message and other activity types
+            if (turnContext.Activity.Type == ActivityTypes.ConversationUpdate)
+            {
+                _logger.LogInformation("Starting a conversation");
+            }
+
             if (turnContext.Activity.Type == ActivityTypes.Message)
             {
                 // Get the conversation state from the turn context.
-                var state = await _accessors.CounterState.GetAsync(turnContext, () => new CounterState());
+                var state = await _accessors.CounterState.GetAsync(turnContext, () => new MindshopperUserState());
 
-                // Bump the turn count for this conversation.
-                state.TurnCount++;
+                switch (state.TurnCount) {
+                    case 0:
+                       HelloUser1(state, turnContext, cancellationToken);
+                       break;
+                    default:
+                        state.TurnCount++;
+                        await _accessors.CounterState.SetAsync(turnContext, state);
+                        // Save the new turn count into the conversation state.
+                        await _accessors.ConversationState.SaveChangesAsync(turnContext);
 
-                // Set the property using the accessor.
-                await _accessors.CounterState.SetAsync(turnContext, state);
-
-                // Save the new turn count into the conversation state.
-                await _accessors.ConversationState.SaveChangesAsync(turnContext);
-
-                // Echo back to the user whatever they typed.
-                var responseMessage = $"Turn {state.TurnCount}: You sent following workds: '{turnContext.Activity.Text}'\n";
-                await turnContext.SendActivityAsync(responseMessage);
+                        // Echo back to the user whatever they typed.
+                        var responseMessage = $"Turn {state.TurnCount}: Hello '{state.UserId}'";
+                        await turnContext.SendActivityAsync(responseMessage);
+                        break;
+                }
             }
             else
             {
                 await turnContext.SendActivityAsync($"{turnContext.Activity.Type} event detected");
             }
+        }
+
+        public async Task StartConversation(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
+        {
+            
+        }
+
+        public async Task HelloUser1(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
+        {
+            state.TurnCount = 1;
+            state.UserId = "Dumi";
+
+            // Set the property using the accessor.
+            await _accessors.CounterState.SetAsync(turnContext, state);
+            // Save the new turn count into the conversation state.
+            await _accessors.ConversationState.SaveChangesAsync(turnContext);
+
+            // Echo back to the user whatever they typed.
+            var responseMessage = $"Turn {state.TurnCount}: Hello '{state.UserId}'";
+
+            
+            await turnContext.SendActivityAsync(responseMessage);
         }
     }
 }
