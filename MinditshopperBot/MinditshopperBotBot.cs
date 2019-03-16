@@ -229,7 +229,7 @@ namespace MinditshopperBot
             //TODO add for other categories
         }
 
-        public async Task SelectItemCategory(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
+        public async Task ChooseItemCategory(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
             var response = turnContext.Activity.Text;
 
@@ -255,7 +255,31 @@ namespace MinditshopperBot
             //TODO add for other categories
         }
 
-        //private 
+        public async Task ChooseItemCategory(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
+        {
+            var response = turnContext.Activity.Text;
+
+            if (response != null && response.Contains("1"))
+            {
+                IList<Item> list = RecommenderClient.ProcessTopItems("10");
+
+                string text = $"Following items are top sellers in the category: 10\n";
+                int cnt = 1;
+                foreach (Item i in list)
+                {
+                    text += $"\n\t\t '{cnt}' - " + i.ItemName;
+                }
+                text += "\n Choose the item";
+
+                state.TurnCount = State.SELECTED_CATEGORY_ITEM;
+
+                await _accessors.MindshopperUserState.SetAsync(turnContext, state);
+                await _accessors.ConversationState.SaveChangesAsync(turnContext);
+                await turnContext.SendActivityAsync(text);
+            }
+
+            //TODO add for other categories
+        }
 
         public async Task HelloUser1(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
