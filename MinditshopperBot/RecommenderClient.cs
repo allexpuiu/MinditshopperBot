@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using NLog;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,11 @@ namespace MinditshopperBot
     public class RecommenderClient
     {
         private static readonly HttpClient client = new HttpClient();
+
+        public static string lastItemProcessed;
+
+        private static Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        
 
         public static async Task ProcessRepositories()
         {
@@ -28,24 +34,38 @@ namespace MinditshopperBot
         public static IList<Item> ProcessRecommendedItem(String itemId)
         {
             client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Clear();
+
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/json"));
+
             client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository");
             client.DefaultRequestHeaders.Add("x-api-key", "M2tlZWdqdXNuZmFrdw==");
-            var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/models/default/recommend?itemId=" + itemId).Result;
+            try
+            {
+                var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/models/default/recommend?itemId=" + itemId.Trim()).Result;
+                IList<Item> items = JsonConvert.DeserializeObject<IList<Item>>(msg);
 
-            IList<Item> items = JsonConvert.DeserializeObject<IList<Item>>(msg);
-
-            return items;
+                return items;
+            } catch(Exception ex)
+            {
+                logger.Error(ex.Message + "\n" + ex?.InnerException?.Message + "\n" + ex.StackTrace);
+                return null;
+            }
+            
         }
 
         public static IList<Item> ProcessTopItems(String category)
         {
             client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Clear();
+
             client.DefaultRequestHeaders.Accept.Add(
                 new MediaTypeWithQualityHeaderValue("application/json"));
+
             client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository");
             client.DefaultRequestHeaders.Add("x-api-key", "M2tlZWdqdXNuZmFrdw==");
+
             var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/topsellers?categoryCode=" + category).Result;
 
             IList<Item> items = JsonConvert.DeserializeObject<IList<Item>>(msg);

@@ -4,6 +4,10 @@
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
 namespace MinditshopperBot
@@ -13,6 +17,16 @@ namespace MinditshopperBot
         public static void Main(string[] args)
         {
             BuildWebHost(args).Run();
+            //HttpClient client = new HttpClient();
+            //client.DefaultRequestHeaders.Accept.Clear();
+            //client.DefaultRequestHeaders.Accept.Add(
+            //    new MediaTypeWithQualityHeaderValue("application/json"));
+            //client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository");
+            //client.DefaultRequestHeaders.Add("x-api-key", "M2tlZWdqdXNuZmFrdw==");
+            //var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/models/default/recommend?itemId=" + "11072088").Result;
+
+            //IList<Item> items = JsonConvert.DeserializeObject<IList<Item>>(msg);
+
         }
 
         public static IWebHost BuildWebHost(string[] args) =>

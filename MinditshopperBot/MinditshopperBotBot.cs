@@ -29,6 +29,7 @@ namespace MinditshopperBot
         private readonly MinditshopperBotAccessors _accessors;
         private readonly ILogger _logger;
         private readonly RecommenderClient recommenderClient;
+        private string lastItemProcessed = "";
 
         /// <summary>
         /// Initializes a new instance of the class.
@@ -215,7 +216,9 @@ namespace MinditshopperBot
         public async Task SelectedCategoryItem(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
             state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
-            string text = $"Here are some recommendations. Type \"OK\" to continue.";
+            var response = turnContext.Activity.Text;
+            RecommenderClient.lastItemProcessed = response;
+            string text = $"You have choosen {response}. Type OK to continue.";
 
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
@@ -225,7 +228,9 @@ namespace MinditshopperBot
         public async Task SelectedRecommendedItem(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
             state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
-            string text = $"Here are some recommendations";
+            var response = turnContext.Activity.Text;
+            lastItemProcessed = response;
+            string text = $"You have choosen {response}. Type OK to continue.";
 
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
@@ -314,6 +319,8 @@ namespace MinditshopperBot
             {
                 if (!response.ToLower().Contains("no"))
                 {
+                    response = response.ToLower().Equals("ok") ? RecommenderClient.lastItemProcessed : response;
+
                     IList<Item> list = RecommenderClient.ProcessRecommendedItem(response);
 
                     text = $"Following items are recommended to you based on the current items in your cart:\n";
