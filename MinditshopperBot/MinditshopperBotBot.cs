@@ -1,7 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;
@@ -89,6 +92,10 @@ namespace MinditshopperBot
             if (turnContext.Activity.Type == ActivityTypes.ConversationUpdate)
             {
                 _logger.LogInformation("Starting a conversation");
+                state.UserId = "1";
+                state.CartId = "1";
+                state.Name = "Dumi";
+                cleanCarts();
                 StartConversation(state, turnContext, cancellationToken);
             }
 
@@ -112,6 +119,7 @@ namespace MinditshopperBot
                         break;
                     case State.END:
                         //TODO implemente here the method that closes the cart at client
+                        CloseCart(state, turnContext, cancellationToken);
                         break;
                     default:
                         state.TurnCount++;
@@ -125,10 +133,10 @@ namespace MinditshopperBot
                         break;
                 }
             }
-            else
-            {
-                await turnContext.SendActivityAsync($"{turnContext.Activity.Type} event detected");
-            }
+            //else
+            //{
+            //    await turnContext.SendActivityAsync($"{turnContext.Activity.Type} event detected");
+            //}
         }
 
         /// <summary>
@@ -175,10 +183,22 @@ namespace MinditshopperBot
 
         public async Task SelectedCategoryItem(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
-            state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
+            ;
             var response = turnContext.Activity.Text;
-            state.LastProcessedItem = response;
-            string text = $"You have choosen {response}. Type \"OK\" to continue.";
+            
+            string text = "";
+            var item = RecommenderClient.ProcessItem(response);
+            if (item != null)
+            {
+                state.SelectedItems.Add(item);
+                text = $"You have choosen {response}. Type \"OK\" to continue.";
+                state.LastProcessedItem = response;
+                state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
+            } else
+            {
+                text = $"You have choosen an invalid item. Type \"OK\" to continue and select a correct item.";
+                state.TurnCount = State.CHOOSE_CATEGORY_ITEM;
+            }
 
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
@@ -193,9 +213,19 @@ namespace MinditshopperBot
             {
                 if (!response.ToLower().Contains("no"))
                 {
-                    state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
-                    state.LastProcessedItem = response;
-                    text = $"You have choosen {response}. Type \"OK\" to continue.";
+                    var item = RecommenderClient.ProcessItem(response);
+                    if (item != null)
+                    {
+                        state.SelectedItems.Add(item);
+                        text = $"You have choosen {response}. Type \"OK\" to continue.";
+                        state.LastProcessedItem = response;
+                        state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
+                    }
+                    else
+                    {
+                        text = $"You have choosen an invalid item. Type \"OK\" to continue and select a correct item.";
+                        state.TurnCount = State.CHOOSE_CATEGORY_ITEM;
+                    }
                 } else
                 {
                     state.TurnCount = State.CHOOSE_CATEGORY;
@@ -203,7 +233,8 @@ namespace MinditshopperBot
                 $"\n\t\t1) Tobacco" +
                 $"\n\t\t2) Liquor" +
                 $"\n\t\t3) Food" +
-                $"\n\t\t4) Perfumes & Cosmetics";
+                $"\n\t\t4) Perfumes & Cosmetics" +
+                $"\n\t\tType\"none\" to close the cart.";
                 }
                 
             }
@@ -211,6 +242,88 @@ namespace MinditshopperBot
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
             await turnContext.SendActivityAsync(text);
+        }
+
+        public async Task CloseCart(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
+        {
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
+
+            builder.DataSource = "mindshopper.database.windows.net";
+            builder.UserID = "mindshopper";
+            builder.Password = "8799LipYAA9oksRLG6ia";
+            builder.InitialCatalog = "mindshopper";
+
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(builder.ConnectionString))
+                {
+                    connection.Open();
+                    foreach (Item i in state.SelectedItems)
+                    { 
+                        StringBuilder sb = new StringBuilder();
+                        sb.Append("INSERT INTO [dbo].[item_cart] (id,item_id, item_description, price, quantity, category_id, category_description, cart_id) VALUES");
+                        sb.Append($"(NEXT VALUE FOR Hibernate_Sequence,'{i.ItemId}', '{i.ItemName}', {i.SalesValue/100}, 1, '{i.CategoryCode}', '{i.Category}', {state.CartId})");
+                        String sql = sb.ToString();
+
+                        using (SqlCommand command = new SqlCommand(sql, connection))
+                        {
+                            command.ExecuteNonQuery();
+                        }
+                    }
+
+                    StringBuilder sb2 = new StringBuilder();
+                    sb2.Append("UPDATE [dbo].[cart] SET STATUS = 'COMPLETED'");
+                    sb2.Append($"where id = {state.CartId}");
+                    String sql2 = sb2.ToString();
+
+                    using (SqlCommand command = new SqlCommand(sql2, connection))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (SqlException e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+
+            await _accessors.MindshopperUserState.SetAsync(turnContext, state);
+            await _accessors.ConversationState.SaveChangesAsync(turnContext);
+        }
+
+        private void cleanCarts()
+        {
+            SqlConnectionStringBuilder builder = new SqlConnectionStringBuilder();
+
+            builder.DataSource = "mindshopper.database.windows.net";
+            builder.UserID = "mindshopper";
+            builder.Password = "8799LipYAA9oksRLG6ia";
+            builder.InitialCatalog = "mindshopper";
+            Item item = null; ;
+
+
+            try
+            {
+                using (SqlConnection connection = new SqlConnection(builder.ConnectionString))
+                {
+                    connection.Open();
+                    
+                    StringBuilder sb2 = new StringBuilder();
+                    sb2.Append("DELETE FROM [dbo].[cart];");
+                    sb2.Append("insert into dbo.cart (id, status, date_created, user_id) values (1, 'NEW', GETDATE(), 1);");
+                    String sql2 = sb2.ToString();
+
+                    using (SqlCommand command = new SqlCommand(sql2, connection))
+                    {
+                        command.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (SqlException e)
+            {
+                Console.WriteLine(e.ToString());
+            }
         }
 
         public async Task ChooseCategory(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
@@ -284,7 +397,7 @@ namespace MinditshopperBot
                 await turnContext.SendActivityAsync(text);
             } else if (response != null && response.ToLower().Contains("no"))
             {
-                string text = $"Thank you for buying. Have a nice day!";
+                string text = $"Thank you for buying. Have a nice day! Type \"OK\" to confirm the completion of the cart.";
                 state.TurnCount = State.END;
 
                 await _accessors.MindshopperUserState.SetAsync(turnContext, state);

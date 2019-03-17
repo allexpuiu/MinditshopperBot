@@ -55,6 +55,31 @@ namespace MinditshopperBot
             
         }
 
+        public static Item ProcessItem(String itemId)
+        {
+            client.DefaultRequestHeaders.Accept.Clear();
+            client.DefaultRequestHeaders.Clear();
+
+            client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+
+            client.DefaultRequestHeaders.Add("User-Agent", ".NET Foundation Repository");
+            client.DefaultRequestHeaders.Add("x-api-key", "M2tlZWdqdXNuZmFrdw==");
+            try
+            {
+                var msg = client.GetStringAsync("https://mindshopperrecws.azurewebsites.net/api/item?itemId=" + itemId.Trim()).Result;
+                Item item = JsonConvert.DeserializeObject<Item>(msg);
+
+                return item;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.Message + "\n" + ex?.InnerException?.Message + "\n" + ex.StackTrace);
+                return null;
+            }
+
+        }
+
         public static IList<Item> ProcessTopItems(String category)
         {
             client.DefaultRequestHeaders.Accept.Clear();

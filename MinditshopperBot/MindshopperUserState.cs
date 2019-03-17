@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
+
 namespace MinditshopperBot
 {
     /// <summary>
@@ -25,5 +27,7 @@ namespace MinditshopperBot
         public bool WasWelcomed { get; set; } = false;
 
         public string LastProcessedItem { get; set; }
+
+        public IList<Item> SelectedItems { get; set; } = new List<Item>();
     }
 }
