@@ -13,6 +13,7 @@ namespace MinditshopperBot
         CHOOSE_CATEGORY_ITEM = 3,
         SELECTED_CATEGORY_ITEM = 4,
         CHOOSE_RECOMMENDED_ITEM = 5,
-        SELECTED_RECOMMENDED_ITEM = 6
+        SELECTED_RECOMMENDED_ITEM = 6,
+        END = 7
     }
 }

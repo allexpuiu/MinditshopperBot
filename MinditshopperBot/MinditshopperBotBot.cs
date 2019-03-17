@@ -110,6 +110,9 @@ namespace MinditshopperBot
                     case State.SELECTED_RECOMMENDED_ITEM:
                         SelectedRecommendedItem(state, turnContext, cancellationToken);
                         break;
+                    case State.END:
+                        //TODO implemente here the method that closes the cart at client
+                        break;
                     default:
                         state.TurnCount++;
                         await _accessors.MindshopperUserState.SetAsync(turnContext, state);
@@ -137,50 +140,6 @@ namespace MinditshopperBot
         /// <returns></returns>
         public async Task StartConversation(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
-            /*
-            IConversationUpdateActivity update = turnContext.Activity;
-            
-            if (update.MembersAdded != null && update.MembersAdded.Any())
-            {
-                foreach (var newMember in update.MembersAdded)
-                {
-                    if (newMember.Id != turnContext.Activity.Recipient.Id)
-                    {
-                        if (turnContext.Activity.From.Properties["userId"] != null)
-                        {
-                            state.UserId = turnContext.Activity.From.Properties["userId"].ToString();
-                        }
-
-                        if (turnContext.Activity.From.Properties["cartId"] != null)
-                        {
-                            state.CartId = turnContext.Activity.From.Properties["cartId"].ToString();
-                        }
-
-                        if (turnContext.Activity.From.Properties["name"] != null)
-                        {
-                            state.Name = turnContext.Activity.From.Properties["name"].ToString();
-                        }
-
-                        state.TurnCount = State.CHOOSE_CATEGORY;
-
-                        await _accessors.MindshopperUserState.SetAsync(turnContext, state);
-                        await _accessors.ConversationState.SaveChangesAsync(turnContext);
-
-
-                        string hello = $"Hello, '{state.Name}'. I am your personal shopping assistant and I will guide you during the shopping process." +
-                            $"\n" +
-                            $"\n Please select what you want to buy:" +
-                            $"\n\t\t1) Tobacco" +
-                            $"\n\t\t2) Food" +
-                            $"\n\t\t3) Perfumes & Cosmetics" +
-                            $"\n\t\t4) Liquor";
-
-                        await turnContext.SendActivityAsync(hello);
-                    }
-                }
-            }*/
-
-
             if (turnContext.Activity.From.Properties["userId"] != null)
             {
                 state.UserId = turnContext.Activity.From.Properties["userId"].ToString();
@@ -201,6 +160,7 @@ namespace MinditshopperBot
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
 
+            state.LastProcessedItem = "";
 
             string hello = $"Hello, '{state.Name}'. I am your personal shopping assistant and I will guide you during the shopping process." +
                 $"\n" +
@@ -217,8 +177,8 @@ namespace MinditshopperBot
         {
             state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
             var response = turnContext.Activity.Text;
-            RecommenderClient.lastItemProcessed = response;
-            string text = $"You have choosen {response}. Type OK to continue.";
+            state.LastProcessedItem = response;
+            string text = $"You have choosen {response}. Type \"OK\" to continue.";
 
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
@@ -227,10 +187,26 @@ namespace MinditshopperBot
 
         public async Task SelectedRecommendedItem(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
         {
-            state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
+            string text = "";
             var response = turnContext.Activity.Text;
-            lastItemProcessed = response;
-            string text = $"You have choosen {response}. Type OK to continue.";
+            if(response != null)
+            {
+                if (!response.ToLower().Contains("no"))
+                {
+                    state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
+                    state.LastProcessedItem = response;
+                    text = $"You have choosen {response}. Type \"OK\" to continue.";
+                } else
+                {
+                    state.TurnCount = State.CHOOSE_CATEGORY;
+                    text = $"You are being sent back to the category choosing.\n Please select the category of interest:" +
+                $"\n\t\t1) Tobacco" +
+                $"\n\t\t2) Liquor" +
+                $"\n\t\t3) Food" +
+                $"\n\t\t4) Perfumes & Cosmetics";
+                }
+                
+            }
 
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);
             await _accessors.ConversationState.SaveChangesAsync(turnContext);
@@ -306,9 +282,16 @@ namespace MinditshopperBot
                 await _accessors.MindshopperUserState.SetAsync(turnContext, state);
                 await _accessors.ConversationState.SaveChangesAsync(turnContext);
                 await turnContext.SendActivityAsync(text);
+            } else if (response != null && response.ToLower().Contains("no"))
+            {
+                string text = $"Thank you for buying. Have a nice day!";
+                state.TurnCount = State.END;
+
+                await _accessors.MindshopperUserState.SetAsync(turnContext, state);
+                await _accessors.ConversationState.SaveChangesAsync(turnContext);
+                await turnContext.SendActivityAsync(text);
             }
 
-            //TODO add for other categories
         }
 
         public async Task ChooseRecommendedItem(MindshopperUserState state, ITurnContext turnContext, CancellationToken cancellationToken)
@@ -319,12 +302,11 @@ namespace MinditshopperBot
             {
                 if (!response.ToLower().Contains("no"))
                 {
-                    response = response.ToLower().Equals("ok") ? RecommenderClient.lastItemProcessed : response;
+                    response = response.ToLower().Equals("ok") ? state.LastProcessedItem : response;
 
                     IList<Item> list = RecommenderClient.ProcessRecommendedItem(response);
 
                     text = $"Following items are recommended to you based on the current items in your cart:\n";
-                    int cnt = 1;
                     foreach (Item i in list)
                     {
                         text += $"\n\t\t '{i.ItemId}' - " + i.ItemName;
@@ -338,6 +320,9 @@ namespace MinditshopperBot
                 {
                     state.TurnCount = State.CHOOSE_CATEGORY;
                 }
+            } else
+            {
+                state.TurnCount = State.CHOOSE_RECOMMENDED_ITEM;
             } 
 
             await _accessors.MindshopperUserState.SetAsync(turnContext, state);

@@ -23,5 +23,7 @@ namespace MinditshopperBot
         public string Name { get; set; } = "Unknown User";
 
         public bool WasWelcomed { get; set; } = false;
+
+        public string LastProcessedItem { get; set; }
     }
 }
