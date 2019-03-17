@@ -310,6 +310,7 @@ namespace MinditshopperBot
                     connection.Open();
                     
                     StringBuilder sb2 = new StringBuilder();
+                    sb2.Append("DELETE FROM [dbo].[item_cart];");
                     sb2.Append("DELETE FROM [dbo].[cart];");
                     sb2.Append("insert into dbo.cart (id, status, date_created, user_id) values (1, 'NEW', GETDATE(), 1);");
                     String sql2 = sb2.ToString();
